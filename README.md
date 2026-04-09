@@ -47,7 +47,7 @@ Este projeto implementa um pipeline de fine-tuning eficiente para o modelo Llama
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/<seu-usuario>/llm-lora-qlora-synthetic-finetuning-lab.git
+git clone https://github.com/lucasrbsouza/llm-lora-qlora-synthetic-finetuning-lab.git
 cd llm-lora-qlora-synthetic-finetuning-lab
 ```
 
