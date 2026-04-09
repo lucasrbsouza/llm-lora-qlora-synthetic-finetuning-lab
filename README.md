@@ -11,11 +11,12 @@ Pipeline completo de fine-tuning de um modelo de linguagem fundacional utilizand
 1. [Visão Geral](#visão-geral)
 2. [Requisitos de Hardware](#requisitos-de-hardware)
 3. [Configuração do Ambiente](#configuração-do-ambiente)
-4. [Passo 1 — Geração do Dataset Sintético](#passo-1--geração-do-dataset-sintético)
-5. [Passo 2, 3 e 4 — Treinamento](#passo-2-3-e-4--treinamento)
-6. [Estrutura do Projeto](#estrutura-do-projeto)
-7. [Hiperparâmetros Obrigatórios](#hiperparâmetros-obrigatórios)
-8. [Política de Uso de IA](#política-de-uso-de-ia)
+4. [Alternativa: Rodar no Google Colab](#alternativa-rodar-no-google-colab)
+5. [Passo 1 — Geração do Dataset Sintético](#passo-1--geração-do-dataset-sintético)
+6. [Passo 2, 3 e 4 — Treinamento](#passo-2-3-e-4--treinamento)
+7. [Estrutura do Projeto](#estrutura-do-projeto)
+8. [Hiperparâmetros Obrigatórios](#hiperparâmetros-obrigatórios)
+9. [Política de Uso de IA](#política-de-uso-de-ia)
 
 ---
 
@@ -32,11 +33,11 @@ Este projeto implementa um pipeline de fine-tuning eficiente para o modelo Llama
 
 ## Requisitos de Hardware
 
-| Recurso | Mínimo | Recomendado |
-|---------|--------|-------------|
-| GPU VRAM | 12 GB | 24 GB |
-| RAM | 16 GB | 32 GB |
-| Armazenamento | 20 GB livres | 40 GB livres |
+| Recurso        | Mínimo       | Recomendado  |
+| -------------- | ------------ | ------------ |
+| GPU VRAM       | 12 GB        | 24 GB        |
+| RAM            | 16 GB        | 32 GB        |
+| Armazenamento  | 20 GB livres | 40 GB livres |
 
 > A quantização 4-bit reduz significativamente o consumo de VRAM, mas o treinamento em CPU é extremamente lento e não recomendado para este projeto.
 
@@ -81,7 +82,7 @@ cp .env.example .env
 
 Abra o arquivo `.env` e preencha:
 
-```
+```env
 OPENAI_API_KEY=sk-...          # Necessário apenas para gerar o dataset
 HF_TOKEN=hf_...                # Token do Hugging Face (necessário para Llama 2)
 BASE_MODEL=NousResearch/Llama-2-7b-hf
@@ -94,6 +95,35 @@ O modelo padrão (`NousResearch/Llama-2-7b-hf`) é um re-upload comunitário que
 1. Acesse [huggingface.co/meta-llama/Llama-2-7b-hf](https://huggingface.co/meta-llama/Llama-2-7b-hf) e aceite os termos de uso.
 2. Gere um token em [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
 3. Defina `BASE_MODEL=meta-llama/Llama-2-7b-hf` no `.env`.
+
+---
+
+## Alternativa: Rodar no Google Colab
+
+Se preferível, o projeto pode ser rodado diretamente no Google Colab, sem necessidade de configurar ambiente local ou possuir uma GPU própria.
+
+O notebook [`colab_training.ipynb`](colab_training.ipynb) contém todo o pipeline adaptado para o Colab.
+
+### Passo a passo
+
+1. Acesse [colab.research.google.com](https://colab.research.google.com)
+2. Clique em `File > Upload notebook` e selecione o arquivo `colab_training.ipynb`
+3. Ative a GPU: `Runtime > Change runtime type > GPU (T4)`
+4. Na **célula 2**, preencha suas credenciais:
+
+```python
+os.environ["OPENAI_API_KEY"] = "sk-..."
+os.environ["HF_TOKEN"]       = "hf_..."
+```
+
+1. Execute as células em ordem com `Shift + Enter` ou clique em `Runtime > Run all`
+
+### Sobre o dataset no Colab
+
+- **Opção A:** rode a célula de geração para criar um novo dataset via OpenAI API
+- **Opção B:** rode a célula alternativa que clona o repositório e usa o dataset já incluído em `data/` — sem gastar créditos da OpenAI
+
+Ao final do treinamento, o notebook oferece uma célula para baixar o adaptador LoRA treinado como arquivo `.zip`.
 
 ---
 
@@ -116,7 +146,7 @@ python generate_dataset.py
 
 Saída esperada:
 
-```
+```text
 Generating 60 football Q&A pairs...
 Train: 54 pairs -> data/train.jsonl
 Test:  6 pairs  -> data/test.jsonl
@@ -146,39 +176,40 @@ Ao final, o adaptador treinado é salvo em `outputs/football-lora/`.
 
 ## Estrutura do Projeto
 
-```
+```text
 llm-lora-qlora-synthetic-finetuning-lab/
-├── .env.example           # Template de variáveis de ambiente
+├── .env.example            # Template de variáveis de ambiente
 ├── .gitignore
 ├── LICENSE
 ├── README.md
-├── requirements.txt       # Dependências do projeto
-├── config.py              # Hiperparâmetros centralizados (dataclasses)
-├── generate_dataset.py    # Geração do dataset sintético via OpenAI API
-├── train.py               # Pipeline completo de fine-tuning
+├── requirements.txt        # Dependências do projeto
+├── config.py               # Hiperparâmetros centralizados (dataclasses)
+├── generate_dataset.py     # Geração do dataset sintético via OpenAI API
+├── train.py                # Pipeline completo de fine-tuning
+├── colab_training.ipynb    # Notebook para execução no Google Colab
 ├── data/
-│   ├── train.jsonl        # 54 pares de treino (futebol)
-│   └── test.jsonl         # 6 pares de teste (futebol)
+│   ├── train.jsonl         # 54 pares de treino (futebol)
+│   └── test.jsonl          # 6 pares de teste (futebol)
 └── outputs/
-    └── football-lora/     # Adaptador LoRA salvo após o treinamento
+    └── football-lora/      # Adaptador LoRA salvo após o treinamento
 ```
 
 ---
 
 ## Hiperparâmetros Obrigatórios
 
-| Componente | Parâmetro | Valor |
-|------------|-----------|-------|
-| Quantização | `bnb_4bit_quant_type` | `nf4` |
-| Quantização | `bnb_4bit_compute_dtype` | `float16` |
-| Quantização | `load_in_4bit` | `True` |
-| LoRA | `r` (rank) | `64` |
-| LoRA | `lora_alpha` | `16` |
-| LoRA | `lora_dropout` | `0.1` |
-| LoRA | `task_type` | `CAUSAL_LM` |
-| Treinamento | `optim` | `paged_adamw_32bit` |
-| Treinamento | `lr_scheduler_type` | `cosine` |
-| Treinamento | `warmup_ratio` | `0.03` |
+| Componente   | Parâmetro                | Valor              |
+| ------------ | ------------------------ | ------------------ |
+| Quantização  | `bnb_4bit_quant_type`    | `nf4`              |
+| Quantização  | `bnb_4bit_compute_dtype` | `float16`          |
+| Quantização  | `load_in_4bit`           | `True`             |
+| LoRA         | `r` (rank)               | `64`               |
+| LoRA         | `lora_alpha`             | `16`               |
+| LoRA         | `lora_dropout`           | `0.1`              |
+| LoRA         | `task_type`              | `CAUSAL_LM`        |
+| Treinamento  | `optim`                  | `paged_adamw_32bit`|
+| Treinamento  | `lr_scheduler_type`      | `cosine`           |
+| Treinamento  | `warmup_ratio`           | `0.03`             |
 
 Todos os valores são definidos em [config.py](config.py) e consumidos pelos scripts sem repetição (princípio DRY).
 
